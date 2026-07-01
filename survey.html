@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Оценка сотрудника</title>
+  <style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f1f5f9; color: #0f172a; min-height: 100vh; padding-bottom: 48px; }
+.top-bar { background: white; border-bottom: 1px solid #e2e8f0; padding: 14px 24px; position: sticky; top: 0; z-index: 10; }
+.top-bar-inner { max-width: 680px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+.top-bar-title { font-size: 14px; font-weight: 600; color: #475569; white-space: nowrap; }
+.progress-wrap { flex: 1; background: #e2e8f0; border-radius: 99px; height: 5px; overflow: hidden; }
+.progress-fill { height: 100%; background: #3b82f6; border-radius: 99px; transition: width .3s; }
+.top-bar-step { font-size: 12px; color: #94a3b8; white-space: nowrap; }
+.wrap { max-width: 680px; margin: 0 auto; padding: 24px 16px; }
+.card { background: white; border-radius: 12px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,.07); margin-bottom: 14px; }
+h1 { font-size: 22px; font-weight: 700; line-height: 1.3; margin-bottom: 6px; }
+h2 { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+.sub { color: #64748b; font-size: 14px; margin-bottom: 18px; line-height: 1.5; }
+.notice { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; font-size: 13px; color: #475569; margin-bottom: 18px; line-height: 1.5; }
+label.fl { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+input[type=text] { width: 100%; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 15px; outline: none; transition: border-color .15s; }
+input[type=text]:focus { border-color: #3b82f6; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: opacity .15s, background .15s; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn-primary { background: #0f172a; color: white; }
+.btn-primary:not(:disabled):hover { background: #1e293b; }
+.btn-secondary { background: #f1f5f9; color: #334155; }
+.btn-secondary:hover { background: #e2e8f0; }
+.btn-row { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; align-items: center; }
+.block-tag { display: inline-flex; align-items: center; gap: 5px; background: #f1f5f9; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+.block-tag-w { font-weight: 400; color: #94a3b8; }
+.divider { border: none; border-top: 1px solid #f1f5f9; margin: 20px 0; }
+.q-header { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 4px; }
+.q-id { font-size: 11px; font-weight: 700; color: #cbd5e1; padding-top: 3px; flex-shrink: 0; }
+.q-text { font-size: 15px; font-weight: 500; line-height: 1.5; }
+.q-hint { font-size: 13px; color: #94a3b8; margin-bottom: 10px; padding-left: 24px; line-height: 1.4; }
+.options { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.opt { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: border-color .1s, background .1s; user-select: none; }
+.opt:hover { border-color: #94a3b8; background: #f8fafc; }
+.opt.sel { border-color: #3b82f6; background: #eff6ff; }
+.opt.sel .dot { background: #3b82f6; border-color: #3b82f6; }
+.opt.skip-opt { border-style: dashed; }
+.opt.skip-opt.sel { border-color: #94a3b8; background: #f8fafc; }
+.opt.skip-opt.sel .dot { background: #94a3b8; border-color: #94a3b8; }
+.dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #cbd5e1; flex-shrink: 0; margin-top: 2px; transition: background .1s, border-color .1s; }
+.opt-text { font-size: 14px; line-height: 1.4; }
+.gate-q-text { font-size: 15px; font-weight: 500; margin-bottom: 10px; line-height: 1.5; }
+.gate-hint { font-size: 13px; color: #94a3b8; margin-bottom: 10px; line-height: 1.4; }
+.gate-btns { display: flex; gap: 8px; }
+.gate-btn { padding: 8px 22px; border-radius: 7px; border: 1.5px solid #e2e8f0; background: white; font-size: 14px; font-weight: 500; cursor: pointer; transition: all .1s; }
+.gate-btn:hover { border-color: #94a3b8; }
+.gate-btn.yes.sel { border-color: #16a34a; background: #f0fdf4; color: #16a34a; }
+.gate-btn.no.sel { border-color: #dc2626; background: #fef2f2; color: #dc2626; }
+.gate-fail-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 14px 16px; font-size: 14px; color: #991b1b; line-height: 1.5; margin-top: 16px; }
+.employee-chip { display: inline-flex; align-items: center; gap: 6px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 99px; padding: 4px 12px; font-size: 13px; font-weight: 500; color: #1d4ed8; margin-bottom: 14px; }
+.thank-icon { font-size: 40px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+<div id="topbar"></div>
+<div class="wrap" id="app"></div>
+<script src="questions.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const SESSION_ID = params.get('s');
+
+let session = null;
+
+let S = {
+  step: 'loading',   // loading | error | welcome | gate | scoring | done
+  blockIdx: 0,
+  name: '',
+  gate: {},
+  ans: {},
+};
+
+// ── API ───────────────────────────────────────────────────────────
+
+async function loadSession() {
+  if (!SESSION_ID) { S.step = 'error'; S.errorMsg = 'Ссылка не содержит идентификатор сессии.'; render(); return; }
+  try {
+    const r = await fetch(`/api/sessions/${SESSION_ID}`);
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Ошибка');
+    session = data.session;
+    S.step = 'welcome';
+    render();
+  } catch(e) {
+    S.step = 'error'; S.errorMsg = e.message; render();
+  }
+}
+
+async function submitResponse(payload) {
+  const r = await fetch(`/api/sessions/${SESSION_ID}/responses`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload),
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || 'Ошибка при отправке');
+  return data;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+
+function isActive(q) {
+  if (!q.conditional) return true;
+  return q.conditional.showWhenScores.includes(S.ans[q.conditional.dependsOn]);
+}
+
+function blockComplete(idx) {
+  const block = BLOCKS[idx];
+  return block.questions.every(q => !isActive(q) || S.ans[q.id] !== undefined);
+}
+
+function getProgress() {
+  if (S.step === 'gate') return 5;
+  if (S.step === 'scoring') return Math.round(((S.blockIdx + 1) / BLOCKS.length) * 90) + 5;
+  if (S.step === 'done') return 100;
+  return 0;
+}
+
+// ── Render ────────────────────────────────────────────────────────
+
+function renderTopBar() {
+  const el = document.getElementById('topbar');
+  if (['loading','error','welcome','done'].includes(S.step)) { el.innerHTML = ''; return; }
+  const pct = getProgress();
+  let label = S.step === 'gate' ? 'Проверка' : `Блок ${S.blockIdx+1}/${BLOCKS.length}`;
+  el.innerHTML = `
+    <div class="top-bar">
+      <div class="top-bar-inner">
+        <span class="top-bar-title">Оценка: ${escHtml(session?.employeeName || '')}</span>
+        <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <span class="top-bar-step">${label}</span>
+      </div>
+    </div>`;
+}
+
+function render() {
+  renderTopBar();
+  const app = document.getElementById('app');
+  if (S.step === 'loading') app.innerHTML = `<div class="card" style="text-align:center;padding:48px"><div style="font-size:24px;margin-bottom:12px">⏳</div><p style="color:#64748b">Загрузка...</p></div>`;
+  else if (S.step === 'error') app.innerHTML = `<div class="card"><div style="font-size:28px;margin-bottom:12px">⚠️</div><h2>Ошибка</h2><p class="sub">${escHtml(S.errorMsg)}</p></div>`;
+  else if (S.step === 'welcome') app.innerHTML = renderWelcome();
+  else if (S.step === 'gate') app.innerHTML = renderGate();
+  else if (S.step === 'scoring') app.innerHTML = renderScoring();
+  else if (S.step === 'done') app.innerHTML = renderDone();
+}
+
+function renderWelcome() {
+  return `
+  <div class="card">
+    <div class="employee-chip">👤 Оценка: ${escHtml(session.employeeName)}</div>
+    <h1>Скоринговая оценка<br>испытательного срока</h1>
+    <p class="sub">Вы участвуете в коллегиальной оценке сотрудника.</p>
+    <div class="notice">
+      <strong>Конфиденциальность.</strong> Ваше имя используется только для идентификации ответа внутри команды. Данные не передаются третьим сторонам.
+    </div>
+    <label class="fl">Ваше имя</label>
+    <input type="text" id="inp-name" placeholder="Иван Иванов" value="${escHtml(S.name)}"
+      oninput="S.name=this.value.trim(); document.getElementById('btn-start').disabled=!S.name;">
+    <div class="btn-row">
+      <button id="btn-start" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px"
+        onclick="S.step='gate'; render()" ${S.name ? '' : 'disabled'}>Начать оценку →</button>
+    </div>
+  </div>`;
+}
+
+function renderGate() {
+  const failed = GATE.find(g => S.gate[g.id] === false);
+  const allDone = GATE.every(g => S.gate[g.id] !== undefined);
+  return `
+  <div class="card">
+    <div class="block-tag">Этап 1 <span class="block-tag-w">— Проверка оснований</span></div>
+    <h2>Можно ли запустить скоринг?</h2>
+    <p class="sub">Убедитесь, что для оценки есть достаточные основания. Если хотя бы один ответ «Нет» — скоринг не запускается.</p>
+    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px 14px;font-size:13px;color:#0c4a6e;margin-bottom:16px">
+      <strong>О чём эти вопросы.</strong> Под «трудностями» подразумевается несоответствие сотрудника ожиданиям роли: задачи не выполняются, сроки нарушаются, результаты ниже требуемых.
+    </div>
+    <div class="divider"></div>
+    ${GATE.map((g,i) => `
+      <div>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <span class="q-id">G${i+1}</span>
+          <div style="flex:1">
+            <div class="gate-q-text">${g.text}</div>
+            ${g.hint ? `<div class="gate-hint">${g.hint}</div>` : ''}
+            <div class="gate-btns">
+              <button class="gate-btn yes ${S.gate[g.id]===true?'sel':''}" onclick="S.gate['${g.id}']=true; render()">Да</button>
+              <button class="gate-btn no ${S.gate[g.id]===false?'sel':''}" onclick="S.gate['${g.id}']=false; render()">Нет</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      ${i < GATE.length-1 ? '<div class="divider"></div>' : ''}
+    `).join('')}
+    ${failed ? `
+      <div class="gate-fail-box"><strong>Скоринг не запускается.</strong><br>${failed.failReason}</div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="S.step='welcome';render()">← Назад</button>
+        <button class="btn btn-primary" onclick="sendGateFailed('${failed.id}')">Отправить и завершить</button>
+      </div>` : `
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="S.step='welcome';render()">← Назад</button>
+        <button class="btn btn-primary" onclick="S.step='scoring';S.blockIdx=0;render();scrollTo(0,0)" ${allDone?'':'disabled'}>Перейти к оценке →</button>
+      </div>`}
+  </div>`;
+}
+
+function renderScoring() {
+  const block = BLOCKS[S.blockIdx];
+  const done = blockComplete(S.blockIdx);
+  const isLast = S.blockIdx === BLOCKS.length - 1;
+  const isProcess = !block.scoring;
+
+  const qs = block.questions.map((q, qi) => {
+    if (!isActive(q)) return '';
+    const checked = S.ans[q.id];
+    const activeQs = block.questions.filter(q2 => isActive(q2));
+    return `
+      <div>
+        <div class="q-header">
+          <span class="q-id">${q.id}</span>
+          <p class="q-text">${q.text}</p>
+        </div>
+        ${q.hint ? `<p class="q-hint">${q.hint}</p>` : ''}
+        <div class="options">
+          ${q.options.map(opt => `
+            <div class="opt ${checked===opt.score?'sel':''} ${opt.score===null?'skip-opt':''}"
+              onclick="pick('${q.id}',${JSON.stringify(opt.score)})">
+              <div class="dot"></div>
+              <span class="opt-text">${opt.text}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+      ${qi < activeQs.length-1 ? '<div class="divider"></div>' : ''}`;
+  }).join('');
+
+  const tagHtml = isProcess
+    ? `<div class="block-tag" style="background:#fef9c3;color:#a16207">Процессный блок <span style="font-weight:400;color:#ca8a04">— не входит в скор</span></div>`
+    : `<div class="block-tag">${block.name} <span class="block-tag-w">— ${block.weight}%</span></div>`;
+
+  const processNote = isProcess
+    ? `<div style="background:#fefce8;border:1px solid #fef08a;border-radius:8px;padding:10px 14px;font-size:13px;color:#713f12;margin-bottom:14px">
+        Этот блок не влияет на итоговый балл — он проверяет, соблюдён ли процесс со стороны компании.
+      </div>`
+    : '';
+
+  return `
+  <div class="card">
+    ${tagHtml}
+    <h2 style="margin-bottom:4px">${block.name}</h2>
+    <p class="sub">${block.desc}</p>
+    ${processNote}
+    <div class="divider"></div>
+    ${qs}
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="prevBlock()">← Назад</button>
+      <button class="btn btn-primary" onclick="nextBlock()" ${done?'':'disabled'}>
+        ${isLast ? 'Отправить ответ →' : 'Следующий блок →'}
+      </button>
+    </div>
+  </div>`;
+}
+
+function renderDone() {
+  return `
+  <div class="card" style="text-align:center;padding:40px 28px">
+    <div class="thank-icon">✅</div>
+    <h1 style="margin-bottom:8px">Спасибо!</h1>
+    <p class="sub">Ваш ответ записан. Результаты увидит только администратор оценки.</p>
+    <p style="font-size:13px;color:#94a3b8;margin-top:16px">Можно закрыть эту страницу.</p>
+  </div>`;
+}
+
+// ── Actions ───────────────────────────────────────────────────────
+
+function pick(qid, score) {
+  S.ans[qid] = score;
+  if (qid === 'C4' && ![2,4].includes(score)) delete S.ans['C5'];
+  render();
+}
+
+function prevBlock() {
+  if (S.blockIdx === 0) { S.step = 'gate'; } else { S.blockIdx--; }
+  render(); scrollTo(0,0);
+}
+
+async function nextBlock() {
+  if (!blockComplete(S.blockIdx)) return;
+  if (S.blockIdx < BLOCKS.length - 1) {
+    S.blockIdx++; render(); scrollTo(0,0);
+  } else {
+    await sendResults();
+  }
+}
+
+async function sendGateFailed(failedGateId) {
+  try {
+    await submitResponse({
+      respondentName: S.name,
+      gateAnswers: S.gate,
+      answers: {},
+      gateFailed: true,
+      gateFailedAt: failedGateId,
+      result: null,
+    });
+    S.step = 'done'; render();
+  } catch(e) {
+    alert('Ошибка: ' + e.message);
+  }
+}
+
+async function sendResults() {
+  const result = calcResults(S.ans);
+  try {
+    await submitResponse({
+      respondentName: S.name,
+      gateAnswers: S.gate,
+      answers: S.ans,
+      gateFailed: false,
+      result,
+    });
+    S.step = 'done'; render();
+  } catch(e) {
+    alert('Ошибка при отправке: ' + e.message);
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+render();
+loadSession();
+</script>
+</body>
+</html>
