@@ -8,7 +8,7 @@ import secrets
 from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory
 
-app = Flask(__name__, static_folder='public')
+app = Flask(__name__, static_folder='.')
 
 # DATA_DIR берётся из переменной окружения (Railway volume) или из папки рядом со скриптом
 DATA_DIR = os.environ.get('DATA_DIR', os.path.join(os.path.dirname(__file__), 'data'))
@@ -32,11 +32,11 @@ def save_data(data):
 
 @app.route('/')
 def index():
-    return send_from_directory('public', 'index.html')
+    return send_from_directory('.', 'index.html')
 
 @app.route('/<path:path>')
 def static_files(path):
-    return send_from_directory('public', path)
+    return send_from_directory('.', path)
 
 # ── Sessions ───────────────────────────────────────────────────────
 
