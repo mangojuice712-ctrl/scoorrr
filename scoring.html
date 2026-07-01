@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Скоринговая оценка сотрудника на испытательном сроке</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d0d1f;
+  --surface: #161628;
+  --surface2: #1e1e38;
+  --surface3: #252545;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.13);
+  --text: #e2e2f0;
+  --muted: #7878a0;
+  --hint: #5a5a80;
+  --accent: #6366f1;
+  --accent2: #818cf8;
+  --green: #22c55e;
+  --yellow: #f59e0b;
+  --red: #ef4444;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* ── Progress ── */
+.progress-bar {
+  height: 2px;
+  background: var(--surface3);
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 200;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #a78bfa);
+  transition: width 0.4s ease;
+}
+
+/* ── Header ── */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(13,13,31,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.header-logo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.3px;
+}
+.stage-chip {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.chip-gate { background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.25); }
+.chip-score { background: rgba(34,197,94,0.12); color: #86efac; border: 1px solid rgba(34,197,94,0.2); }
+.chip-done { background: rgba(245,158,11,0.12); color: #fcd34d; border: 1px solid rgba(245,158,11,0.2); }
+
+/* ── Layout ── */
+.main {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 48px 24px 100px;
+}
+
+/* ── Screens ── */
+.screen { display: none; animation: fadeIn 0.2s ease; }
+.screen.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── START ── */
+.start-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent2);
+  background: rgba(99,102,241,0.1);
+  border: 1px solid rgba(99,102,241,0.2);
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 20px;
+}
+.start-title {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 14px;
+  background: linear-gradient(135deg, #e2e2f0, #a5b4fc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.start-desc {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.7;
+  margin-bottom: 36px;
+  max-width: 520px;
+}
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 36px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 16px;
+}
+.stat-num {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.stat-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.stat-sub {
+  font-size: 11px;
+  color: var(--hint);
+  margin-top: 2px;
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #4f46e5;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(99,102,241,0.35);
+}
+.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-secondary {
+  background: var(--surface2);
+  color: var(--muted);
+  border: 1px solid var(--border2);
+}
+.btn-secondary:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+.btn-lg { padding: 14px 28px; font-size: 15px; }
+.btn-restart {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border2);
+  font-size: 13px;
+  padding: 10px 18px;
+}
+.btn-restart:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+/* ── Section label ── */
+.section-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--hint);
+  margin-bottom: 8px;
+}
+
+/* ── GATE screen ── */
+.gate-header { margin-bottom: 32px; }
+.gate-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.gate-sub { font-size: 14px; color: var(--muted); }
+
+.gate-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 24px;
+}
+.q-id {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent2);
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+.q-text {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.55;
+  margin-bottom: 6px;
+}
+.q-hint {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-top: 8px;
+  margin-bottom: 0;
+  padding: 10px 14px;
+  background: var(--surface2);
+  border-radius: 8px;
+  border-left: 3px solid var(--border2);
+}
+
+.gate-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 20px;
+}
+.gate-btn {
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 16px;
+  cursor: pointer;
+  font-size: 17px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--muted);
+  transition: all 0.15s;
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+.gate-btn:hover { transform: translateY(-2px); }
+.gate-btn.yes:hover, .gate-btn.yes.selected {
+  background: rgba(34,197,94,0.1);
+  border-color: var(--green);
+  color: var(--green);
+}
+.gate-btn.no:hover, .gate-btn.no.selected {
+  background: rgba(239,68,68,0.1);
+  border-color: var(--red);
+  color: var(--red);
+}
+
+/* ── BLOCKED screen ── */
+.blocked-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 20px 0 40px;
+}
+.blocked-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(239,68,68,0.1);
+  border: 2px solid rgba(239,68,68,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  margin-bottom: 24px;
+}
+.blocked-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.blocked-sub {
+  font-size: 15px;
+  color: var(--muted);
+  max-width: 460px;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+.blocked-box {
+  background: rgba(239,68,68,0.07);
+  border: 1px solid rgba(239,68,68,0.2);
+  border-left: 3px solid #ef4444;
+  border-radius: 0 10px 10px 0;
+  padding: 14px 18px;
+  font-size: 14px;
+  color: #fca5a5;
+  max-width: 480px;
+  text-align: left;
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
+.blocked-gate-id {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f87171;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+/* ── BLOCK screen ── */
+.block-header {
+  margin-bottom: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.block-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.block-title {
+  font-size: 22px;
+  font-weight: 700;
+}
+.blocking-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 10px;
+  background: rgba(245,158,11,0.12);
+  color: var(--yellow);
+  border: 1px solid rgba(245,158,11,0.25);
+  letter-spacing: 0.3px;
+}
+.block-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+.block-weight-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent2);
+  background: rgba(99,102,241,0.1);
+  padding: 2px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(99,102,241,0.18);
+}
+
+/* Question card */
+.question-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 14px;
+  transition: border-color 0.2s;
+}
+.question-card.answered { border-color: rgba(99,102,241,0.2); }
+
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 16px;
+}
+.opt-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--surface2);
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  padding: 12px 16px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.45;
+  font-family: inherit;
+  width: 100%;
+  transition: all 0.12s;
+}
+.opt-btn:hover { background: rgba(99,102,241,0.1); border-color: rgba(99,102,241,0.3); }
+.opt-btn.selected { background: rgba(99,102,241,0.13); border-color: var(--accent); }
+.opt-btn.is-null { opacity: 0.6; }
+.opt-btn.is-null:hover { opacity: 0.85; }
+.opt-btn.is-null.selected { background: rgba(255,255,255,0.04); border-color: var(--hint); opacity: 1; }
+
+.opt-radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--hint);
+  flex-shrink: 0;
+  margin-top: 1px;
+  transition: all 0.12s;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.opt-btn.selected .opt-radio {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.opt-btn.selected .opt-radio::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+}
+.opt-btn.is-null.selected .opt-radio {
+  border-color: var(--hint);
+  background: transparent;
+}
+.opt-btn.is-null.selected .opt-radio::after { background: var(--muted); }
+
+/* divider before "Не могу оценить" */
+.opt-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* Navigation */
+.nav-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 28px;
+  gap: 12px;
+}
+.nav-progress {
+  font-size: 12px;
+  color: var(--hint);
+}
+
+/* ── RESULTS ── */
+.score-hero {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 28px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+.score-big {
+  font-size: 80px;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.score-of { font-size: 16px; color: var(--muted); margin-bottom: 20px; }
+.zone-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: 30px;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+.zone-pill.green { background: rgba(34,197,94,0.1); color: var(--green); border: 2px solid rgba(34,197,94,0.25); }
+.zone-pill.yellow { background: rgba(245,158,11,0.1); color: var(--yellow); border: 2px solid rgba(245,158,11,0.25); }
+.zone-pill.red { background: rgba(239,68,68,0.1); color: var(--red); border: 2px solid rgba(239,68,68,0.25); }
+.score-big.green { color: var(--green); }
+.score-big.yellow { color: var(--yellow); }
+.score-big.red { color: var(--red); }
+.zone-rec {
+  font-size: 14px;
+  color: var(--muted);
+  max-width: 480px;
+  margin: 0 auto;
+  line-height: 1.65;
+}
+
+/* Blocking alert */
+.block-alert {
+  background: rgba(245,158,11,0.06);
+  border: 1px solid rgba(245,158,11,0.2);
+  border-left: 3px solid var(--yellow);
+  border-radius: 0 10px 10px 0;
+  padding: 14px 18px;
+  margin-bottom: 10px;
+}
+.block-alert-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--yellow);
+  margin-bottom: 5px;
+}
+.block-alert-text { font-size: 13px; color: #fde68a; line-height: 1.6; }
+
+/* Block score bars */
+.scores-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.score-row { margin-bottom: 18px; }
+.score-row:last-child { margin-bottom: 0; }
+.score-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 7px;
+  gap: 8px;
+}
+.score-row-name {
+  font-size: 13px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.score-row-pct {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.bar-track {
+  height: 5px;
+  background: var(--surface3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.7s cubic-bezier(.4,0,.2,1);
+}
+
+/* Weak / missing lists */
+.result-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--hint);
+  margin: 24px 0 10px;
+}
+.item-list {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.list-row:last-child { border-bottom: none; }
+.list-row-id {
+  font-weight: 700;
+  color: var(--accent2);
+  min-width: 30px;
+  flex-shrink: 0;
+}
+.list-row-text { color: var(--muted); flex: 1; line-height: 1.5; }
+.list-row-score { font-weight: 700; white-space: nowrap; color: var(--red); }
+
+/* Results footer */
+.results-footer {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 36px;
+  flex-wrap: wrap;
+}
+
+/* Divider */
+.divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+/* Responsive */
+@media (max-width: 520px) {
+  .main { padding: 32px 16px 80px; }
+  .start-title { font-size: 24px; }
+  .stats-row { grid-template-columns: repeat(3,1fr); gap: 8px; }
+  .stat-card { padding: 14px 10px; }
+  .stat-num { font-size: 22px; }
+  .score-big { font-size: 60px; }
+  .gate-options { gap: 8px; }
+  .gate-btn { padding: 14px 10px; font-size: 15px; }
+}
+</style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+<header class="header">
+  <span class="header-logo">Скоринг · ИС</span>
+  <span class="stage-chip chip-gate" id="stageChip">Этап 1 — Проверка оснований</span>
+</header>
+
+<div class="main">
+
+  <!-- ── START ── -->
+  <div class="screen active" id="screen-start">
+    <div class="start-badge">🔍 Оценка испытательного срока</div>
+    <h1 class="start-title">Скоринговая оценка<br>сотрудника на ИС</h1>
+    <p class="start-desc">Инструмент помогает принять обоснованное решение о подтверждении или неподтверждении испытательного срока на основе конкретных данных и взвешенной оценки по 7 блокам.</p>
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num">2</div>
+        <div class="stat-label">Этапа</div>
+        <div class="stat-sub">GATE + Скоринг</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">~25</div>
+        <div class="stat-label">Вопросов</div>
+        <div class="stat-sub">Зависит от ответов</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">7</div>
+        <div class="stat-label">Блоков</div>
+        <div class="stat-sub">С весами и блокировками</div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-lg" onclick="startAssessment()">Начать оценку →</button>
+  </div>
+
+  <!-- ── GATE ── -->
+  <div class="screen" id="screen-gate">
+    <div class="gate-header">
+      <div class="section-label" id="gateStepLabel">Вопрос 1 из 4</div>
+      <h2 class="gate-title">Проверка оснований для оценки</h2>
+      <p class="gate-sub">Все четыре условия должны быть выполнены. Если хотя бы одно — нет, скоринг не запускается.</p>
+    </div>
+    <div class="gate-card">
+      <div class="q-id" id="gateQid">G1</div>
+      <p class="q-text" id="gateQtext"></p>
+      <div class="q-hint" id="gateQhint" style="display:none"></div>
+      <div class="gate-options">
+        <button class="gate-btn yes" id="gateBtnYes" onclick="answerGate('yes')">Да</button>
+        <button class="gate-btn no" id="gateBtnNo" onclick="answerGate('no')">Нет</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BLOCKED ── -->
+  <div class="screen" id="screen-blocked">
+    <div class="blocked-wrap">
+      <div class="blocked-icon">🚫</div>
+      <h2 class="blocked-title">Скоринг не запускается</h2>
+      <p class="blocked-sub">Для запуска оценки необходимо выполнение всех четырёх условий GATE. Сначала нужно устранить причину остановки.</p>
+      <div class="blocked-box">
+        <div class="blocked-gate-id" id="blockedGateId"></div>
+        <div id="blockedMsg"></div>
+      </div>
+      <button class="btn btn-primary" onclick="restart()">Начать заново</button>
+    </div>
+  </div>
+
+  <!-- ── BLOCK ── -->
+  <div class="screen" id="screen-block">
+    <div class="block-header">
+      <div class="section-label" id="blockStepLabel">Блок 1 из 7</div>
+      <div class="block-title-row">
+        <h2 class="block-title" id="blockTitle"></h2>
+        <span class="blocking-pill" id="blockingPill" style="display:none">Блокирующий</span>
+      </div>
+      <div class="block-meta-row">
+        <span class="block-weight-badge" id="blockWeightBadge"></span>
+        <span id="blockQCount" style="color:var(--hint);font-size:12px;"></span>
+      </div>
+    </div>
+
+    <div id="questionsContainer"></div>
+
+    <div class="nav-row">
+      <button class="btn btn-secondary" id="btnBack" onclick="navBack()" style="display:none">← Назад</button>
+      <span></span>
+      <button class="btn btn-primary" id="btnNext" onclick="navNext()" disabled>Далее →</button>
+    </div>
+  </div>
+
+  <!-- ── RESULTS ── -->
+  <div class="screen" id="screen-results">
+    <div id="resultsContent"></div>
+    <div class="results-footer">
+      <button class="btn btn-restart" onclick="restart()">↺ Начать заново</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════════════════════
+
+const GATE = [
+  {
+    id: 'G1',
+    text: 'Проблема повторялась и носит системный характер, а не была единичным случаем?',
+    hint: null,
+    msg: 'Единичный случай не является основанием для запуска скоринговой оценки. Необходимо убедиться, что проблема проявлялась неоднократно и носит системный характер.'
+  },
+  {
+    id: 'G2',
+    text: 'Есть ли конкретные примеры, которые показывают, в чём именно проявляется проблема?',
+    hint: null,
+    msg: 'Проблема пока описана слишком общо. Необходимо собрать конкретные примеры, которые чётко показывают, в чём именно выражается проблема.'
+  },
+  {
+    id: 'G3',
+    text: 'Есть ли зафиксированные данные или нарушения договорённостей, подтверждающие проблему?',
+    hint: 'Например: задачи в Focus / Jira, комментарии в peer review, зафиксированная обратная связь, метрики, статусы задач, переписка, нарушения сроков.',
+    msg: 'Есть только наблюдения, но нет достаточной доказательной базы. Необходимо собрать зафиксированные данные: задачи, переписку, нарушения сроков или договорённостей.'
+  },
+  {
+    id: 'G4',
+    text: 'Проблема связана с выполнением рабочих задач и ожиданиями от роли, а не с личными особенностями сотрудника?',
+    hint: null,
+    msg: 'Данный скоринг оценивает результаты работы на испытательном сроке. Если проблема связана с личными особенностями сотрудника — нужно перенаправить кейс в другой процесс: процесс по софтам / этический комитет.'
+  }
+];
+
+const BLOCKS = [
+  {
+    id: 'results',
+    title: 'Результаты работы',
+    weight: 0.30,
+    isBlocking: false,
+    questions: [
+      {
+        id: 'P1', w: 5,
+        text: 'Насколько сотрудник выполнил цели испытательного срока?',
+        opts: [
+          { t: 'Выполнил меньше половины поставленных целей', s: 0 },
+          { t: 'Выполнил примерно половину поставленных целей', s: 2 },
+          { t: 'Выполнил большую часть или все поставленные цели', s: 4 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      },
+      {
+        id: 'P2', w: 4,
+        text: 'Как часто сотрудник нарушал согласованные сроки?',
+        opts: [
+          { t: 'Сроки практически всегда соблюдались', s: 4 },
+          { t: 'Иногда сроки нарушались', s: 2 },
+          { t: 'Нарушение сроков происходило регулярно', s: 0 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      },
+      {
+        id: 'P3', w: 5,
+        text: 'Если для роли определены метрики, насколько сотрудник им соответствует?',
+        opts: [
+          { t: 'Метрики выполняются полностью', s: 4 },
+          { t: 'Выполняется только часть метрик', s: 2 },
+          { t: 'Метрики не выполняются', s: 0 },
+          { t: 'Для роли нет метрик / не могу оценить', s: null }
+        ]
+      },
+      {
+        id: 'P4', w: 4,
+        text: 'Проблемы возникают только в отдельных задачах или проявляются регулярно?',
+        opts: [
+          { t: 'Проблемы возникают только в отдельных задачах', s: 4 },
+          { t: 'Проблемы проявляются в нескольких направлениях работы', s: 2 },
+          { t: 'Проблемы возникают практически во всех задачах', s: 0 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      },
+      {
+        id: 'P5', w: 3,
+        text: 'Как часто коллегам приходится помогать сотруднику или доделывать его работу?',
+        opts: [
+          { t: 'Практически не приходится', s: 4 },
+          { t: 'Иногда требуется помощь или дотаск', s: 2 },
+          { t: 'Регулярно приходится помогать или завершать работу за сотрудника', s: 0 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'chance',
+    title: 'Был ли шанс исправиться',
+    weight: 0.25,
+    isBlocking: true,
+    questions: [
+      {
+        id: 'C1', w: 4,
+        text: 'Проводилась ли в середине испытательного срока встреча с обсуждением результатов и планом улучшений?',
+        opts: [
+          { t: 'Такой встречи не было', s: 0 },
+          { t: 'Встреча была, но без понятного плана дальнейших действий', s: 2 },
+          { t: 'Встреча была, и по её итогам был согласован план улучшений', s: 4 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      },
+      {
+        id: 'C2', w: 4,
+        text: 'Были ли ожидания от роли и критерии успешного прохождения испытательного срока понятны сотруднику с самого начала?',
+        opts: [
+          { t: 'Ожидания не были понятны', s: 0 },
+          { t: 'Ожидания были понятны частично', s: 2 },
+          { t: 'Ожидания были понятны и зафиксированы', s: 4 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      },
+      {
+        id: 'C3', w: 4,
+        text: 'Были ли у сотрудника достаточные условия для успешной работы?',
+        hint: 'Например: доступы, инструкции, онбординг, наставник, регулярные 1-1, понятный контекст роли.',
+        opts: [
+          { t: 'У сотрудника не было достаточных условий для успешной работы', s: 0 },
+          { t: 'Часть необходимых условий была обеспечена, часть — нет', s: 2 },
+          { t: 'У сотрудника были все ключевые условия для успешной работы', s: 4 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      },
+      {
+        id: 'C4', w: 5,
+        text: 'После получения обратной связи появлялись заметные улучшения?',
+        opts: [
+          { t: 'Улучшений не было', s: 0 },
+          { t: 'Поведение частично улучшилось', s: 2 },
+          { t: 'После обратной связи работа сотрудника заметно улучшилась', s: 4 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      },
+      {
+        id: 'C5', w: 2,
+        text: 'Удалось ли сохранить улучшения?',
+        conditional: { on: 'C4', when: [2, 4] },
+        opts: [
+          { t: 'Улучшения быстро исчезли', s: 0 },
+          { t: 'Улучшения сохранялись лишь частично', s: 2 },
+          { t: 'Улучшения сохранились и стали устойчивыми', s: 4 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'feedback',
+    title: 'Обратная связь',
+    weight: 0.20,
+    isBlocking: true,
+    questions: [
+      {
+        id: 'F1', w: 4,
+        text: 'Получал ли сотрудник обратную связь по ходу испытательного срока, а не только в его конце?',
+        opts: [
+          { t: 'Обратную связь практически не давали', s: 0 },
+          { t: 'Обратная связь давалась нерегулярно', s: 2 },
+          { t: 'Обратная связь давалась регулярно', s: 4 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      },
+      {
+        id: 'F2', w: 3,
+        text: 'Были ли в обратной связи конкретные примеры и факты?',
+        opts: [
+          { t: 'Обратная связь была общей, без конкретных примеров', s: 0 },
+          { t: 'Иногда приводились конкретные примеры', s: 2 },
+          { t: 'Обратная связь строилась на конкретных фактах и примерах', s: 4 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      },
+      {
+        id: 'F3', w: 3,
+        text: 'Зафиксирована ли обратная связь?',
+        hint: 'Например: в Focus, MChat, peer review, Jira или другом рабочем пространстве.',
+        opts: [
+          { t: 'Обратная связь нигде не зафиксирована', s: 0 },
+          { t: 'Зафиксирована только часть обратной связи', s: 2 },
+          { t: 'Обратная связь полностью зафиксирована', s: 4 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'impact',
+    title: 'Влияние на команду',
+    weight: 0.07,
+    isBlocking: false,
+    questions: [
+      {
+        id: 'I1', w: 4,
+        text: 'Приводит ли работа сотрудника к дополнительным ошибкам или переделкам в команде?',
+        opts: [
+          { t: 'Дополнительных ошибок или переделок практически не возникает', s: 4 },
+          { t: 'Иногда возникают ошибки или требуется доработка', s: 2 },
+          { t: 'Ошибки и переделки возникают регулярно', s: 0 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      },
+      {
+        id: 'I2', w: 3,
+        text: 'Требует ли этот сотрудник заметно больше внимания лидера или наставника, чем остальные?',
+        opts: [
+          { t: 'Не требует дополнительного внимания по сравнению с другими сотрудниками', s: 4 },
+          { t: 'Иногда требует больше внимания', s: 2 },
+          { t: 'Требует значительно больше внимания, чем остальные сотрудники', s: 0 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'validity',
+    title: 'Справедливость оценки',
+    weight: 0.10,
+    isBlocking: true,
+    questions: [
+      {
+        id: 'V1', w: 4,
+        text: 'Насколько проблема связана с действиями сотрудника, а не с устройством роли, процессами или условиями работы круга?',
+        opts: [
+          { t: 'Основная причина — в устройстве роли, процессах или условиях работы круга', s: 0 },
+          { t: 'Причина связана и с действиями сотрудника, и с внешними условиями', s: 2 },
+          { t: 'Основная причина связана с действиями сотрудника', s: 4 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      },
+      {
+        id: 'V2', w: 3,
+        text: 'Менялись ли ожидания от роли по ходу испытательного срока без явной фиксации и договорённостей?',
+        opts: [
+          { t: 'Ожидания были стабильными или все изменения были явно зафиксированы и согласованы', s: 4 },
+          { t: 'Были отдельные изменения или уточнения, но не всё было зафиксировано', s: 2 },
+          { t: 'Ожидания заметно менялись без фиксации и договорённостей', s: 0 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'forecast',
+    title: 'Прогноз',
+    weight: 0.05,
+    isBlocking: false,
+    questions: [
+      {
+        id: 'R1', w: 4,
+        text: 'Если ничего не менять, насколько вероятно, что проблемы повторятся?',
+        opts: [
+          { t: 'Вероятность повторения проблем низкая', s: 4 },
+          { t: 'Часть проблем может повториться', s: 2 },
+          { t: 'Высока вероятность, что проблемы повторятся', s: 0 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      },
+      {
+        id: 'R2', w: 3,
+        text: 'Можно ли продолжать работу с этим сотрудником без существенных рисков для команды?',
+        opts: [
+          { t: 'Да, существенных рисков нет', s: 4 },
+          { t: 'Есть отдельные риски, но ими можно управлять', s: 2 },
+          { t: 'Нет, риски для команды остаются высокими', s: 0 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      },
+      {
+        id: 'R3', w: 2,
+        text: 'Если дать дополнительное время на исправление, есть ли основания ожидать устойчивых улучшений?',
+        opts: [
+          { t: 'Дополнительное время вряд ли изменит ситуацию', s: 0 },
+          { t: 'Дополнительное время может дать частичный результат', s: 2 },
+          { t: 'Есть основания ожидать устойчивых улучшений', s: 4 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'employee',
+    title: 'Позиция сотрудника',
+    weight: 0.03,
+    isBlocking: false,
+    questions: [
+      {
+        id: 'E1', w: 1,
+        text: 'Признаёт ли сотрудник наличие проблемы и готов ли обсуждать её открыто?',
+        opts: [
+          { t: 'Сотрудник не признаёт наличие проблемы', s: 0 },
+          { t: 'Сотрудник признаёт проблему лишь частично', s: 2 },
+          { t: 'Сотрудник открыто признаёт проблему и готов её обсуждать', s: 4 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      },
+      {
+        id: 'E2', w: 1,
+        text: 'Насколько оценка сотрудником своей работы совпадает с тем, как её оценивает команда?',
+        opts: [
+          { t: 'Оценка сотрудника существенно отличается от оценки команды', s: 0 },
+          { t: 'Совпадает только по отдельным аспектам', s: 2 },
+          { t: 'В целом совпадает с оценкой команды', s: 4 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      },
+      {
+        id: 'E3', w: 1,
+        text: 'Есть ли у сотрудника понятный план, что именно он будет менять?',
+        opts: [
+          { t: 'Конкретного плана действий нет', s: 0 },
+          { t: 'Есть отдельные идеи, но план проработан не полностью', s: 2 },
+          { t: 'Есть понятный план с конкретными действиями', s: 4 },
+          { t: 'Не могу оценить', s: null }
+        ]
+      }
+    ]
+  }
+];
+
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+
+let S = {
+  screen: 'start',
+  gateIdx: 0,
+  gateAnswers: {},    // { G1: 'yes'|'no' }
+  blockIdx: 0,
+  answers: {}         // { P1: { s: 4, i: 2 }, ... }
+};
+
+// ════════════════════════════════════════════════════════════
+// SCREEN HELPERS
+// ════════════════════════════════════════════════════════════
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  S.screen = id;
+  updateHeader();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateHeader() {
+  const fill = document.getElementById('progressFill');
+  const chip = document.getElementById('stageChip');
+  const total = GATE.length + BLOCKS.length;
+
+  let pct = 0;
+  if (S.screen === 'gate') {
+    pct = (S.gateIdx / total) * 100;
+    chip.textContent = 'Этап 1 — Проверка оснований';
+    chip.className = 'stage-chip chip-gate';
+  } else if (S.screen === 'block') {
+    pct = ((GATE.length + S.blockIdx) / total) * 100;
+    chip.textContent = 'Этап 2 — Скоринговая оценка';
+    chip.className = 'stage-chip chip-score';
+  } else if (S.screen === 'results') {
+    pct = 100;
+    chip.textContent = 'Результаты';
+    chip.className = 'stage-chip chip-done';
+  } else if (S.screen === 'blocked') {
+    pct = 5;
+    chip.textContent = 'Этап 1 — Проверка оснований';
+    chip.className = 'stage-chip chip-gate';
+  }
+  fill.style.width = pct + '%';
+}
+
+// ════════════════════════════════════════════════════════════
+// START
+// ════════════════════════════════════════════════════════════
+
+function startAssessment() {
+  S.gateIdx = 0;
+  renderGate();
+}
+
+// ════════════════════════════════════════════════════════════
+// GATE
+// ════════════════════════════════════════════════════════════
+
+function renderGate() {
+  const q = GATE[S.gateIdx];
+  document.getElementById('gateStepLabel').textContent = `Вопрос ${S.gateIdx + 1} из ${GATE.length}`;
+  document.getElementById('gateQid').textContent = q.id;
+  document.getElementById('gateQtext').textContent = q.text;
+
+  const hintEl = document.getElementById('gateQhint');
+  if (q.hint) {
+    hintEl.textContent = q.hint;
+    hintEl.style.display = 'block';
+  } else {
+    hintEl.style.display = 'none';
+  }
+
+  const prev = S.gateAnswers[q.id];
+  document.getElementById('gateBtnYes').classList.toggle('selected', prev === 'yes');
+  document.getElementById('gateBtnNo').classList.toggle('selected', prev === 'no');
+
+  show('gate');
+}
+
+function answerGate(answer) {
+  const q = GATE[S.gateIdx];
+  S.gateAnswers[q.id] = answer;
+
+  document.getElementById('gateBtnYes').classList.toggle('selected', answer === 'yes');
+  document.getElementById('gateBtnNo').classList.toggle('selected', answer === 'no');
+
+  setTimeout(() => {
+    if (answer === 'no') {
+      document.getElementById('blockedGateId').textContent = q.id + ' — Условие не выполнено';
+      document.getElementById('blockedMsg').textContent = q.msg;
+      show('blocked');
+    } else {
+      S.gateIdx++;
+      if (S.gateIdx < GATE.length) {
+        renderGate();
+      } else {
+        S.blockIdx = 0;
+        renderBlock();
+      }
+    }
+  }, 280);
+}
+
+// ════════════════════════════════════════════════════════════
+// BLOCKS
+// ════════════════════════════════════════════════════════════
+
+function getVisible(block) {
+  return block.questions.filter(q => {
+    if (!q.conditional) return true;
+    const dep = S.answers[q.conditional.on];
+    if (!dep) return false;
+    return q.conditional.when.includes(dep.s);
+  });
+}
+
+function renderBlock(preserveScroll) {
+  const block = BLOCKS[S.blockIdx];
+  const visible = getVisible(block);
+
+  document.getElementById('blockStepLabel').textContent = `Блок ${S.blockIdx + 1} из ${BLOCKS.length}`;
+  document.getElementById('blockTitle').textContent = block.title;
+  document.getElementById('blockWeightBadge').textContent = `Вес: ${Math.round(block.weight * 100)}%`;
+  document.getElementById('blockQCount').textContent = `${visible.length} ${plural(visible.length, 'вопрос', 'вопроса', 'вопросов')}`;
+  document.getElementById('blockingPill').style.display = block.isBlocking ? 'inline-flex' : 'none';
+  document.getElementById('btnBack').style.display = S.blockIdx === 0 ? 'none' : 'inline-flex';
+
+  const container = document.getElementById('questionsContainer');
+  container.innerHTML = '';
+
+  visible.forEach(q => {
+    const saved = S.answers[q.id];
+    const card = document.createElement('div');
+    card.className = 'question-card' + (saved ? ' answered' : '');
+    card.id = 'card-' + q.id;
+
+    const hintHtml = q.hint
+      ? `<div class="q-hint" style="margin-top:8px;margin-bottom:0">${q.hint}</div>`
+      : '';
+
+    const optsHtml = q.opts.map((opt, i) => {
+      const isNull = opt.s === null;
+      const isSelected = saved && saved.i === i;
+      const divider = isNull && i === q.opts.length - 1
+        ? '<div class="opt-divider"></div>'
+        : '';
+      return `${divider}<button
+        class="opt-btn${isNull ? ' is-null' : ''}${isSelected ? ' selected' : ''}"
+        onclick="pickOption('${q.id}', ${i}, ${opt.s === null ? 'null' : opt.s})"
+      ><span class="opt-radio"></span><span>${opt.t}</span></button>`;
+    }).join('');
+
+    card.innerHTML = `
+      <div class="q-id">${q.id}</div>
+      <p class="q-text">${q.text}</p>
+      ${hintHtml}
+      <div class="options-list">${optsHtml}</div>
+    `;
+    container.appendChild(card);
+  });
+
+  checkNextBtn();
+  if (!preserveScroll) show('block');
+}
+
+function plural(n, one, few, many) {
+  const mod10 = n % 10, mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+  return many;
+}
+
+function pickOption(qid, optIdx, score) {
+  const block = BLOCKS[S.blockIdx];
+
+  // Save answer
+  S.answers[qid] = { s: score, i: optIdx };
+
+  // Clear answers for conditional questions that are no longer visible
+  block.questions.forEach(q => {
+    if (q.conditional && q.conditional.on === qid) {
+      const shouldShow = q.conditional.when.includes(score);
+      if (!shouldShow) delete S.answers[q.id];
+    }
+  });
+
+  // Re-render to handle conditional show/hide
+  const hadConditional = block.questions.some(q => q.conditional && q.conditional.on === qid);
+  if (hadConditional) {
+    const scrollY = window.scrollY;
+    renderBlock(true);
+    window.scrollTo(0, scrollY);
+  } else {
+    // Just update the card UI without full re-render
+    const card = document.getElementById('card-' + qid);
+    if (card) {
+      card.classList.add('answered');
+      card.querySelectorAll('.opt-btn').forEach((btn, i) => {
+        btn.classList.toggle('selected', i === optIdx);
+      });
+    }
+    checkNextBtn();
+  }
+}
+
+function checkNextBtn() {
+  const block = BLOCKS[S.blockIdx];
+  const visible = getVisible(block);
+  const allDone = visible.every(q => S.answers[q.id] !== undefined);
+  document.getElementById('btnNext').disabled = !allDone;
+}
+
+function navNext() {
+  S.blockIdx++;
+  if (S.blockIdx < BLOCKS.length) {
+    renderBlock();
+  } else {
+    renderResults();
+  }
+}
+
+function navBack() {
+  if (S.blockIdx > 0) {
+    S.blockIdx--;
+    renderBlock();
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// SCORING
+// ════════════════════════════════════════════════════════════
+
+function blockScore(block) {
+  const visible = getVisible(block);
+  let num = 0, den = 0;
+  visible.forEach(q => {
+    const a = S.answers[q.id];
+    if (!a || a.s === null) return;
+    num += a.s * q.w;
+    den += 4 * q.w;
+  });
+  return den === 0 ? null : (num / den) * 100;
+}
+
+function finalScore() {
+  let total = 0;
+  BLOCKS.forEach(b => {
+    const bs = blockScore(b);
+    if (bs !== null) total += bs * b.weight;
+  });
+  return Math.round(total);
+}
+
+function getZone(score) {
+  if (score <= 40) return 'red';
+  if (score <= 65) return 'yellow';
+  return 'green';
+}
+
+// ════════════════════════════════════════════════════════════
+// RESULTS
+// ════════════════════════════════════════════════════════════
+
+const ZONE_LABELS = { green: '✓ Зелёная зона', yellow: '⚠ Жёлтая зона', red: '✗ Красная зона' };
+const ZONE_RECS = {
+  green: 'ИС подтверждается — сотрудник остаётся в роли. Результаты работы соответствуют ожиданиям.',
+  yellow: 'Нужен разговор, корректировка ожиданий или дополнительный цикл улучшения. Итоговое решение требует дополнительного обсуждения.',
+  red: 'ИС не подтверждается — рекомендуется принять решение о расставании с сотрудником.'
+};
+const BLOCKING_MSGS = {
+  chance:   { title: 'Блокировка: «Шанс исправиться» < 25%', text: 'Нельзя принимать решение о неподтверждении ИС на текущих данных. Нужно провести встречу, зафиксировать ожидания, дать план улучшений и назначить срок повторной оценки.' },
+  feedback: { title: 'Блокировка: «Обратная связь» < 25%', text: 'Нельзя принимать жёсткое решение без предварительной обратной связи. Нужно дать сотруднику конкретную обратную связь с фактами, зафиксировать её и дать время на реакцию.' },
+  validity: { title: 'Блокировка: «Справедливость оценки» < 25%', text: 'Сначала нужно проверить системные причины: описание роли, ожидания, процессы, доступы, нагрузку и изменения договорённостей. После этого скоринг можно повторить.' }
+};
+
+function barColor(score) {
+  if (score === null) return '#3a3a60';
+  if (score >= 66) return '#22c55e';
+  if (score >= 41) return '#f59e0b';
+  return '#ef4444';
+}
+
+function renderResults() {
+  const scores = {};
+  BLOCKS.forEach(b => { scores[b.id] = blockScore(b); });
+
+  let score = finalScore();
+  let zone = getZone(score);
+
+  // Check blocking conditions
+  const alerts = [];
+  if (zone === 'red') {
+    ['chance', 'feedback', 'validity'].forEach(bid => {
+      const bs = scores[bid];
+      if (bs !== null && bs < 25) alerts.push(BLOCKING_MSGS[bid]);
+    });
+    if (alerts.length > 0) zone = 'yellow';
+  }
+
+  // Missing data
+  const missing = [];
+  BLOCKS.forEach(b => {
+    getVisible(b).forEach(q => {
+      const a = S.answers[q.id];
+      if (a && a.s === null) missing.push({ id: q.id, text: q.text });
+    });
+  });
+
+  // Weak spots
+  const weak = BLOCKS.filter(b => {
+    const bs = scores[b.id];
+    return bs !== null && bs < 50;
+  }).map(b => ({ title: b.title, score: Math.round(scores[b.id]) }));
+
+  let html = '';
+
+  // Hero
+  html += `
+    <div class="score-hero">
+      <div class="score-big ${zone}">${score}</div>
+      <div class="score-of">из 100</div>
+      <div class="zone-pill ${zone}">${ZONE_LABELS[zone]}</div>
+      <p class="zone-rec">${ZONE_RECS[zone]}</p>
+    </div>
+  `;
+
+  // Blocking alerts
+  if (alerts.length > 0) {
+    html += `<div class="result-section-title">Сработавшие блокировки</div>`;
+    alerts.forEach(a => {
+      html += `<div class="block-alert"><div class="block-alert-title">${a.title}</div><div class="block-alert-text">${a.text}</div></div>`;
+    });
+  }
+
+  // Block score bars
+  html += `<div class="result-section-title">Баллы по блокам</div>`;
+  html += `<div class="scores-panel">`;
+  BLOCKS.forEach(b => {
+    const bs = scores[b.id];
+    const pct = bs !== null ? Math.round(bs) : null;
+    const col = barColor(pct);
+    html += `
+      <div class="score-row">
+        <div class="score-row-header">
+          <span class="score-row-name">
+            ${b.title}
+            ${b.isBlocking ? '<span class="blocking-pill">блокирующий</span>' : ''}
+          </span>
+          <span class="score-row-pct" style="color:${col}">${pct !== null ? pct + '%' : 'н/д'}</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${pct || 0}%;background:${col}"></div>
+        </div>
+      </div>
+    `;
+  });
+  html += `</div>`;
+
+  // Weak spots
+  if (weak.length > 0) {
+    html += `<div class="result-section-title">Слабые места (блоки ниже 50%)</div>`;
+    html += `<div class="item-list">`;
+    weak.forEach(w => {
+      html += `
+        <div class="list-row">
+          <span class="list-row-text">${w.title}</span>
+          <span class="list-row-score">${w.score}%</span>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  // Missing data
+  if (missing.length > 0) {
+    html += `<div class="result-section-title">Недостающие данные (ответ «Не могу оценить»)</div>`;
+    html += `<div class="item-list">`;
+    missing.forEach(m => {
+      html += `
+        <div class="list-row">
+          <span class="list-row-id">${m.id}</span>
+          <span class="list-row-text">${m.text}</span>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  document.getElementById('resultsContent').innerHTML = html;
+  show('results');
+}
+
+// ════════════════════════════════════════════════════════════
+// RESTART
+// ════════════════════════════════════════════════════════════
+
+function restart() {
+  S = { screen: 'start', gateIdx: 0, gateAnswers: {}, blockIdx: 0, answers: {} };
+  document.getElementById('stageChip').textContent = 'Этап 1 — Проверка оснований';
+  document.getElementById('stageChip').className = 'stage-chip chip-gate';
+  document.getElementById('progressFill').style.width = '0%';
+  show('start');
+}
+
+// Init
+updateHeader();
+</script>
+</body>
+</html>

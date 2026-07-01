@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Скоринговая оценка — Испытательный срок</title>
+  <style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f1f5f9;
+  color: #0f172a;
+  min-height: 100vh;
+  padding-bottom: 48px;
+}
+.top-bar {
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 14px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.top-bar-inner {
+  max-width: 680px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.top-bar-title { font-size: 14px; font-weight: 600; color: #475569; white-space: nowrap; }
+.progress-wrap { flex: 1; background: #e2e8f0; border-radius: 99px; height: 5px; overflow: hidden; }
+.progress-fill { height: 100%; background: #3b82f6; border-radius: 99px; transition: width .3s; }
+.top-bar-step { font-size: 12px; color: #94a3b8; white-space: nowrap; }
+.wrap { max-width: 680px; margin: 0 auto; padding: 24px 16px; }
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.07);
+  margin-bottom: 14px;
+}
+h1 { font-size: 22px; font-weight: 700; line-height: 1.3; margin-bottom: 6px; }
+h2 { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+.sub { color: #64748b; font-size: 14px; margin-bottom: 18px; line-height: 1.5; }
+.notice {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 12px 14px; font-size: 13px; color: #475569; margin-bottom: 18px; line-height: 1.5;
+}
+label.field-label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+input[type=text] {
+  width: 100%; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+  font-size: 15px; outline: none; transition: border-color .15s;
+}
+input[type=text]:focus { border-color: #3b82f6; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500;
+  cursor: pointer; border: none; transition: opacity .15s, background .15s;
+}
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn-primary { background: #0f172a; color: white; }
+.btn-primary:not(:disabled):hover { background: #1e293b; }
+.btn-secondary { background: #f1f5f9; color: #334155; }
+.btn-secondary:hover { background: #e2e8f0; }
+.btn-row { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; align-items: center; }
+.block-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #f1f5f9; border-radius: 6px; padding: 4px 10px;
+  font-size: 11px; font-weight: 700; color: #475569;
+  text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px;
+}
+.block-tag-weight { font-weight: 400; color: #94a3b8; }
+.divider { border: none; border-top: 1px solid #f1f5f9; margin: 20px 0; }
+.q-block { margin-bottom: 0; }
+.q-header { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 4px; }
+.q-id { font-size: 11px; font-weight: 700; color: #cbd5e1; padding-top: 3px; flex-shrink: 0; }
+.q-text { font-size: 15px; font-weight: 500; line-height: 1.5; }
+.q-hint { font-size: 13px; color: #94a3b8; margin-bottom: 10px; padding-left: 24px; line-height: 1.4; }
+.options { display: flex; flex-direction: column; gap: 6px; padding-left: 0; }
+.opt {
+  display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px;
+  border: 1.5px solid #e2e8f0; border-radius: 8px; cursor: pointer;
+  transition: border-color .1s, background .1s; user-select: none;
+}
+.opt:hover { border-color: #94a3b8; background: #f8fafc; }
+.opt.sel { border-color: #3b82f6; background: #eff6ff; }
+.opt.sel .dot { background: #3b82f6; border-color: #3b82f6; }
+.opt.skip-opt { border-style: dashed; }
+.opt.skip-opt.sel { border-color: #94a3b8; background: #f8fafc; }
+.opt.skip-opt.sel .dot { background: #94a3b8; border-color: #94a3b8; }
+.dot {
+  width: 16px; height: 16px; border-radius: 50%; border: 2px solid #cbd5e1;
+  flex-shrink: 0; margin-top: 2px; transition: background .1s, border-color .1s;
+}
+.opt-text { font-size: 14px; line-height: 1.4; }
+/* Gate */
+.gate-q { margin-bottom: 0; }
+.gate-q-text { font-size: 15px; font-weight: 500; margin-bottom: 10px; line-height: 1.5; }
+.gate-hint { font-size: 13px; color: #94a3b8; margin-bottom: 10px; line-height: 1.4; }
+.gate-btns { display: flex; gap: 8px; }
+.gate-btn {
+  padding: 8px 22px; border-radius: 7px; border: 1.5px solid #e2e8f0;
+  background: white; font-size: 14px; font-weight: 500; cursor: pointer; transition: all .1s;
+}
+.gate-btn:hover { border-color: #94a3b8; }
+.gate-btn.yes.sel { border-color: #16a34a; background: #f0fdf4; color: #16a34a; }
+.gate-btn.no.sel { border-color: #dc2626; background: #fef2f2; color: #dc2626; }
+.gate-fail-box {
+  background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;
+  padding: 14px 16px; font-size: 14px; color: #991b1b; line-height: 1.5; margin-top: 16px;
+}
+/* Results */
+.score-num { font-size: 56px; font-weight: 800; line-height: 1; }
+.score-num.green { color: #16a34a; }
+.score-num.yellow { color: #d97706; }
+.score-num.red { color: #dc2626; }
+.zone-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 8px; font-size: 15px; font-weight: 700;
+}
+.zone-green { background: #f0fdf4; color: #16a34a; border: 2px solid #16a34a; }
+.zone-yellow { background: #fffbeb; color: #d97706; border: 2px solid #d97706; }
+.zone-red { background: #fef2f2; color: #dc2626; border: 2px solid #dc2626; }
+.section-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em;
+  color: #94a3b8; margin-bottom: 12px;
+}
+.rec-box {
+  background: #f8fafc; border-left: 3px solid #3b82f6;
+  padding: 12px 16px; border-radius: 0 8px 8px 0;
+  font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 0;
+}
+.block-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.block-row-name { font-size: 13px; color: #475569; flex: 1; min-width: 0; }
+.bar-wrap { width: 100px; height: 5px; background: #e2e8f0; border-radius: 99px; flex-shrink: 0; }
+.bar-fill { height: 100%; border-radius: 99px; }
+.block-row-val { font-size: 13px; font-weight: 600; width: 36px; text-align: right; flex-shrink: 0; }
+.blocker-box {
+  background: #fffbeb; border: 1.5px solid #f59e0b; border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 10px;
+}
+.blocker-title { font-size: 13px; font-weight: 700; color: #92400e; margin-bottom: 4px; }
+.blocker-text { font-size: 13px; color: #78350f; line-height: 1.5; }
+.weak-item { font-size: 13px; color: #475569; margin-bottom: 8px; }
+.weak-id { font-size: 11px; font-weight: 700; color: #94a3b8; }
+.miss-item { font-size: 13px; color: #94a3b8; margin-bottom: 4px; }
+.steps-list { display: flex; flex-direction: column; gap: 8px; }
+.step-item { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: #475569; }
+.step-num {
+  background: #e2e8f0; border-radius: 50%; width: 20px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 1px;
+}
+  </style>
+</head>
+<body>
+<div id="topbar"></div>
+<div class="wrap" id="app"></div>
+<script>
+
+// ─────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────
+
+const GATE = [
+  {
+    id:'G1',
+    text:'Проблема повторялась и носит системный характер, а не была единичным случаем?',
+    failReason:'Единичный случай не является основанием для оценки снятия с роли. Сначала необходимо собрать больше данных.'
+  },
+  {
+    id:'G2',
+    text:'Есть ли конкретные примеры, которые показывают, в чём именно проявляется проблема?',
+    failReason:'Проблема описана слишком общо. Необходимо собрать конкретные примеры.'
+  },
+  {
+    id:'G3',
+    text:'Есть ли зафиксированные данные или нарушения договорённостей, подтверждающие проблему?',
+    hint:'Например: задачи в Focus / Jira, комментарии в peer review, зафиксированная обратная связь, метрики, переписка, договорённости по срокам.',
+    failReason:'Есть только наблюдения, но нет достаточной доказательной базы.'
+  },
+  {
+    id:'G4',
+    text:'Проблема связана с выполнением рабочих задач и ожиданиями от роли, а не с личными особенностями сотрудника?',
+    failReason:'Скоринг по результатам работы на ИС не запускается. Нужно перенаправить кейс в другой процесс — например, в процесс по софтам / этический комитет.'
+  },
+];
+
+const BLOCKS = [
+  {
+    id:'P', name:'Результаты работы', weight:30, blocking:false,
+    desc:'Насколько сотрудник справляется с целями, задачами, сроками и ожиданиями роли.',
+    questions:[
+      { id:'P1', text:'Насколько сотрудник выполнил цели испытательного срока?', weight:5,
+        options:[
+          {text:'Выполнил меньше половины поставленных целей',score:0},
+          {text:'Выполнил примерно половину поставленных целей',score:2},
+          {text:'Выполнил большую часть или все поставленные цели',score:4},
+          {text:'Не могу оценить',score:null},
+        ]},
+      { id:'P2', text:'Как часто сотрудник нарушал согласованные сроки?', weight:4,
+        options:[
+          {text:'Сроки практически всегда соблюдались',score:4},
+          {text:'Иногда сроки нарушались',score:2},
+          {text:'Нарушение сроков происходило регулярно',score:0},
+          {text:'Не могу оценить',score:null},
+        ]},
+      { id:'P3', text:'Если для роли определены метрики, насколько сотрудник им соответствует?', weight:5,
+        options:[
+          {text:'Метрики выполняются полностью',score:4},
+          {text:'Выполняется только часть метрик',score:2},
+          {text:'Метрики не выполняются',score:0},
+          {text:'Для роли нет метрик / не могу оценить',score:null},
+        ]},
+      { id:'P4', text:'Проблемы возникают только в отдельных задачах или проявляются регулярно?', weight:4,
+        options:[
+          {text:'Проблемы возникают только в отдельных задачах',score:4},
+          {text:'Проблемы проявляются в нескольких направлениях работы',score:2},
+          {text:'Проблемы возникают практически во всех задачах',score:0},
+          {text:'Не могу оценить',score:null},
+        ]},
+      { id:'P5', text:'Как часто коллегам приходится помогать сотруднику или доделывать его работу?', weight:3,
+        options:[
+          {text:'Практически не приходится',score:4},
+          {text:'Иногда требуется помощь или дотаск',score:2},
+          {text:'Регулярно приходится помогать или завершать работу за сотрудника',score:0},
+          {text:'Не могу оценить',score:null},
+        ]},
+    ]
+  },
+  {
+    id:'C', name:'Был ли шанс исправиться', weight:25, blocking:true,
+    desc:'Были ли у сотрудника понятные ожидания, условия для работы, обратная связь и возможность улучшиться.',
+    blockingMsg:'Нельзя принимать решение о неподтверждении ИС на текущих данных. Нужно провести встречу, зафиксировать ожидания, дать план улучшений и назначить срок повторной оценки.',
+    questions:[
+      { id:'C1', text:'Проводилась ли в середине испытательного срока встреча с обсуждением результатов и планом улучшений?', weight:4,
+        options:[
+          {text:'Такой встречи не было',score:0},
+          {text:'Встреча была, но без понятного плана дальнейших действий',score:2},
+          {text:'Встреча была, и по итогам был согласован план улучшений',score:4},
+          {text:'Не могу оценить',score:null},
+        ]},
+      { id:'C2', text:'Были ли ожидания от роли и критерии успешного прохождения ИС понятны сотруднику с самого начала?', weight:4,
+        options:[
+          {text:'Ожидания не были понятны',score:0},
+          {text:'Ожидания были понятны частично',score:2},
+          {text:'Ожидания были понятны и зафиксированы',score:4},
+          {text:'Не могу оценить',score:null},
+        ]},
+      { id:'C3', text:'Были ли у сотрудника достаточные условия для успешной работы?', weight:4,
+        hint:'Например: доступы, инструкции, онбординг, наставник, регулярные 1-1, понятный контекст роли.',
+        options:[
+          {text:'У сотрудника не было достаточных условий для успешной работы',score:0},
+          {text:'Часть необходимых условий была обеспечена, часть — нет',score:2},
+          {text:'У сотрудника были все ключевые условия для успешной работы',score:4},
+          {text:'Не могу оценить',score:null},
+        ]},
+      { id:'C4', text:'После получения обратной связи появлялись заметные улучшения?', weight:5,
+        options:[
+          {text:'Улучшений не было',score:0},
+          {text:'Поведение частично улучшилось',score:2},
+          {text:'После обратной связи работа сотрудника заметно улучшилась',score:4},
+          {text:'Не могу оценить',score:null},
+        ]},
+      { id:'C5', text:'Удалось ли сохранить улучшения?', weight:2,
+        conditional:{dependsOn:'C4', showWhenScores:[2,4]},
+        options:[
+          {text:'Улучшения быстро исчезли',score:0},
+          {text:'Улучшения сохранялись лишь частично',score:2},
+          {text:'Улучшения сохранились и стали устойчивыми',score:4},
+          {text:'Не могу оценить',score:null},
+        ]},
+    ]
+  },
+  {
+    id:'F', name:'Обратная связь', weight:20, blocking:true,
+    desc:'Получал ли сотрудник регулярную, конкретную и зафиксированную обратную связь.',
+    blockingMsg:'Нельзя принимать жёсткое решение без предварительной обратной связи. Нужно дать сотруднику конкретную обратную связь с фактами, зафиксировать её и дать время на реакцию.',
+    questions:[
+      { id:'F1', text:'Получал ли сотрудник обратную связь по ходу испытательного срока, а не только в его конце?', weight:4,
+        options:[
+          {text:'Обратную связь практически не давали',score:0},
+          {text:'Обратная связь давалась нерегулярно',score:2},
+          {text:'Обратная связь давалась регулярно',score:4},
+          {text:'Не могу оценить',score:null},
+        ]},
+      { id:'F2', text:'Были ли в обратной связи конкретные примеры и факты?', weight:3,
+        options:[
+          {text:'Обратная связь была общей, без конкретных примеров',score:0},
+          {text:'Иногда приводились конкретные примеры',score:2},
+          {text:'Обратная связь строилась на конкретных фактах и примерах',score:4},
+          {text:'Не могу оценить',score:null},
+        ]},
+      { id:'F3', text:'Зафиксирована ли обратная связь?', weight:3,
+        hint:'Например: в Focus, MChat, peer review, Jira или другом рабочем пространстве.',
+        options:[
+          {text:'Обратная связь нигде не зафиксирована',score:0},
+          {text:'Зафиксирована только часть обратной связи',score:2},
+          {text:'Обратная связь полностью зафиксирована',score:4},
+          {text:'Не могу оценить',score:null},
+        ]},
+    ]
+  },
+  {
+    id:'I', name:'Влияние на команду', weight:7, blocking:false,
+    desc:'Создаёт ли работа сотрудника дополнительную нагрузку для команды, лидера или наставника.',
+    questions:[
+      { id:'I1', text:'Приводит ли работа сотрудника к дополнительным ошибкам или переделкам в команде?', weight:4,
+        options:[
+          {text:'Дополнительных ошибок или переделок практически не возникает',score:4},
+          {text:'Иногда возникают ошибки или требуется доработка',score:2},
+          {text:'Ошибки и переделки возникают регулярно',score:0},
+          {text:'Не могу оценить',score:null},
+        ]},
+      { id:'I2', text:'Требует ли этот сотрудник заметно больше внимания лидера или наставника, чем остальные?', weight:3,
+        options:[
+          {text:'Не требует дополнительного внимания по сравнению с другими',score:4},
+          {text:'Иногда требует больше внимания',score:2},
+          {text:'Требует значительно больше внимания, чем остальные',score:0},
+          {text:'Не могу оценить',score:null},
+        ]},
+    ]
+  },
+  {
+    id:'V', name:'Справедливость оценки', weight:10, blocking:true,
+    desc:'Справедливо ли оценивать проблему как проблему сотрудника, а не как следствие роли, процессов или изменения ожиданий.',
+    blockingMsg:'Сначала нужно проверить системные причины: описание роли, ожидания, процессы, доступы, нагрузку и изменения договорённостей. После этого скоринг можно повторить.',
+    questions:[
+      { id:'V1', text:'Насколько проблема связана с действиями сотрудника, а не с устройством роли, процессами или условиями работы круга?', weight:4,
+        options:[
+          {text:'Основная причина — в устройстве роли, процессах или условиях',score:0},
+          {text:'Причина связана и с действиями сотрудника, и с внешними условиями',score:2},
+          {text:'Основная причина связана с действиями сотрудника',score:4},
+          {text:'Не могу оценить',score:null},
+        ]},
+      { id:'V2', text:'Менялись ли ожидания от роли по ходу ИС без явной фиксации и договорённостей?', weight:3,
+        options:[
+          {text:'Ожидания были стабильными или все изменения были явно зафиксированы',score:4},
+          {text:'Были отдельные изменения, но не всё было зафиксировано',score:2},
+          {text:'Ожидания заметно менялись без фиксации и договорённостей',score:0},
+          {text:'Не могу оценить',score:null},
+        ]},
+    ]
+  },
+  {
+    id:'R', name:'Прогноз', weight:5, blocking:false,
+    desc:'Что может произойти дальше: повторятся ли проблемы, можно ли продолжать работу.',
+    questions:[
+      { id:'R1', text:'Если ничего не менять, насколько вероятно, что проблемы повторятся?', weight:4,
+        options:[
+          {text:'Вероятность повторения проблем низкая',score:4},
+          {text:'Часть проблем может повториться',score:2},
+          {text:'Высока вероятность, что проблемы повторятся',score:0},
+          {text:'Не могу оценить',score:null},
+        ]},
+      { id:'R2', text:'Можно ли продолжать работу с этим сотрудником без существенных рисков для команды?', weight:3,
+        options:[
+          {text:'Да, существенных рисков нет',score:4},
+          {text:'Есть отдельные риски, но ими можно управлять',score:2},
+          {text:'Нет, риски для команды остаются высокими',score:0},
+          {text:'Не могу оценить',score:null},
+        ]},
+      { id:'R3', text:'Если дать дополнительное время на исправление, есть ли основания ожидать устойчивых улучшений?', weight:2,
+        options:[
+          {text:'Дополнительное время вряд ли изменит ситуацию',score:0},
+          {text:'Дополнительное время может дать частичный результат',score:2},
+          {text:'Есть основания ожидать устойчивых улучшений',score:4},
+          {text:'Не могу оценить',score:null},
+        ]},
+    ]
+  },
+  {
+    id:'E', name:'Позиция сотрудника', weight:3, blocking:false,
+    desc:'Признаёт ли сотрудник проблему и есть ли у него понятный план действий.',
+    questions:[
+      { id:'E1', text:'Признаёт ли сотрудник наличие проблемы и готов ли обсуждать её открыто?', weight:1,
+        options:[
+          {text:'Сотрудник не признаёт наличие проблемы',score:0},
+          {text:'Сотрудник признаёт проблему лишь частично',score:2},
+          {text:'Сотрудник открыто признаёт проблему и готов её обсуждать',score:4},
+          {text:'Не могу оценить',score:null},
+        ]},
+      { id:'E2', text:'Насколько оценка сотрудником своей работы совпадает с тем, как её оценивает команда?', weight:1,
+        options:[
+          {text:'Оценка сотрудника существенно отличается от оценки команды',score:0},
+          {text:'Совпадает только по отдельным аспектам',score:2},
+          {text:'В целом совпадает с оценкой команды',score:4},
+          {text:'Не могу оценить',score:null},
+        ]},
+      { id:'E3', text:'Есть ли у сотрудника понятный план, что именно он будет менять?', weight:1,
+        options:[
+          {text:'Конкретного плана действий нет',score:0},
+          {text:'Есть отдельные идеи, но план проработан не полностью',score:2},
+          {text:'Есть понятный план с конкретными действиями',score:4},
+          {text:'Не могу оценить',score:null},
+        ]},
+    ]
+  },
+];
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+
+let S = {
+  step: 'welcome',      // welcome | gate | scoring | results
+  blockIdx: 0,
+  name: '',
+  gate: {},             // {G1: true|false, ...}
+  ans: {},              // {P1: 0|2|4|null, ...}
+  ts: Date.now(),
+};
+
+(function loadState() {
+  try {
+    const raw = localStorage.getItem('scoring_v1');
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (Date.now() - parsed.ts < 12 * 3600 * 1000) S = parsed;
+    else localStorage.removeItem('scoring_v1');
+  } catch(e) {}
+})();
+
+function save() { localStorage.setItem('scoring_v1', JSON.stringify(S)); }
+
+// ─────────────────────────────────────────────
+// LOGIC
+// ─────────────────────────────────────────────
+
+function isActive(q) {
+  if (!q.conditional) return true;
+  return q.conditional.showWhenScores.includes(S.ans[q.conditional.dependsOn]);
+}
+
+function blockScore(bid) {
+  const block = BLOCKS.find(b => b.id === bid);
+  let num = 0, den = 0;
+  for (const q of block.questions) {
+    if (!isActive(q)) continue;
+    const a = S.ans[q.id];
+    if (a === undefined || a === null) continue;
+    num += a * q.weight;
+    den += 4 * q.weight;
+  }
+  return den === 0 ? null : Math.round((num / den) * 100);
+}
+
+function calcResults() {
+  const scores = {};
+  let num = 0, den = 0;
+  for (const b of BLOCKS) {
+    const s = blockScore(b.id);
+    scores[b.id] = s;
+    if (s !== null) { num += s * b.weight; den += b.weight; }
+  }
+  const total = den > 0 ? Math.round(num / den) : 0;
+  let zone = total >= 66 ? 'green' : total >= 41 ? 'yellow' : 'red';
+  const blockers = [];
+  if (zone === 'red') {
+    for (const b of BLOCKS) {
+      if (b.blocking && scores[b.id] !== null && scores[b.id] < 25) {
+        blockers.push(b);
+        zone = 'yellow';
+      }
+    }
+  }
+  const weak = [];
+  const missing = [];
+  for (const b of BLOCKS) {
+    for (const q of b.questions) {
+      if (!isActive(q)) continue;
+      if (S.ans[q.id] === 0) weak.push({q, b});
+      if (S.ans[q.id] === null) missing.push({q, b});
+    }
+  }
+  return {total, scores, zone, blockers, weak, missing};
+}
+
+function blockComplete(idx) {
+  const block = BLOCKS[idx];
+  return block.questions.every(q => !isActive(q) || S.ans[q.id] !== undefined);
+}
+
+function scoreColor(s) {
+  if (s === null) return '#94a3b8';
+  if (s >= 66) return '#16a34a';
+  if (s >= 41) return '#d97706';
+  return '#dc2626';
+}
+
+// ─────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────
+
+function renderTopBar() {
+  if (S.step === 'welcome') { document.getElementById('topbar').innerHTML = ''; return; }
+  const totalSteps = 1 + BLOCKS.length;
+  let pct = 0;
+  let label = '';
+  if (S.step === 'gate') { pct = 5; label = 'Проверка оснований'; }
+  else if (S.step === 'scoring') {
+    pct = Math.round(((S.blockIdx + 1) / totalSteps) * 95) + 5;
+    label = `Блок ${S.blockIdx + 1} из ${BLOCKS.length}`;
+  }
+  else if (S.step === 'results') { pct = 100; label = 'Результат готов'; }
+  document.getElementById('topbar').innerHTML = `
+    <div class="top-bar">
+      <div class="top-bar-inner">
+        <span class="top-bar-title">Скоринговая оценка</span>
+        <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <span class="top-bar-step">${label}</span>
+      </div>
+    </div>`;
+}
+
+function renderWelcome() {
+  return `
+  <div class="card">
+    <h1>Скоринговая оценка<br>испытательного срока</h1>
+    <p class="sub">Инструмент запускается, когда у команды появились обоснованные сомнения в успешном прохождении ИС.</p>
+    <div class="notice">
+      <strong>Конфиденциальность.</strong> Имя используется только для идентификации сессии — оно нигде не сохраняется и никуда не передаётся. Ответы хранятся локально в браузере.
+    </div>
+    <label class="field-label" for="inp-name">Ваше имя</label>
+    <input type="text" id="inp-name" placeholder="Иван Иванов" value="${escHtml(S.name)}"
+      oninput="S.name=this.value.trim(); document.getElementById('btn-start').disabled=!S.name;">
+    <div style="margin-top:20px;background:#f8fafc;border-radius:10px;padding:16px 18px">
+      <div class="section-label" style="margin-bottom:10px">Как работает оценка</div>
+      <div class="steps-list">
+        <div class="step-item"><div class="step-num">1</div><span>Проверка оснований — 4 вопроса Gate. Если хотя бы один ответ «Нет» — скоринг не запускается.</span></div>
+        <div class="step-item"><div class="step-num">2</div><span>Скоринг по 7 блокам: результаты работы, возможность исправиться, обратная связь, влияние на команду, справедливость оценки, прогноз, позиция сотрудника.</span></div>
+        <div class="step-item"><div class="step-num">3</div><span>Итоговая зона и рекомендация. При необходимости автоматически применяются блокирующие условия.</span></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button id="btn-start" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px 20px"
+        onclick="gotoGate()" ${S.name ? '' : 'disabled'}>Начать оценку →</button>
+    </div>
+  </div>`;
+}
+
+function renderGate() {
+  const failed = GATE.find(g => S.gate[g.id] === false);
+  const allDone = GATE.every(g => S.gate[g.id] !== undefined);
+  return `
+  <div class="card">
+    <div class="block-tag">Этап 1 <span class="block-tag-weight">— Проверка оснований</span></div>
+    <h2>Можно ли запустить скоринг?</h2>
+    <p class="sub">Ответьте на все четыре вопроса. Если хотя бы один ответ «Нет» — скоринговая оценка не запускается.</p>
+    <div class="divider"></div>
+    ${GATE.map((g, i) => `
+      <div class="gate-q">
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <span class="q-id">G${i+1}</span>
+          <div style="flex:1">
+            <div class="gate-q-text">${g.text}</div>
+            ${g.hint ? `<div class="gate-hint">${g.hint}</div>` : ''}
+            <div class="gate-btns">
+              <button class="gate-btn yes ${S.gate[g.id]===true?'sel':''}" onclick="setGate('${g.id}',true)">Да</button>
+              <button class="gate-btn no ${S.gate[g.id]===false?'sel':''}" onclick="setGate('${g.id}',false)">Нет</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      ${i < GATE.length-1 ? '<div class="divider"></div>' : ''}
+    `).join('')}
+    ${failed ? `
+      <div class="gate-fail-box">
+        <strong>Скоринг не запускается.</strong><br>${failed.failReason}
+      </div>
+    ` : ''}
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="S.step='welcome';save();render()">← Назад</button>
+      ${!failed ? `<button class="btn btn-primary" onclick="gotoScoring()" ${allDone?'':'disabled'}>Перейти к оценке →</button>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderScoring() {
+  const block = BLOCKS[S.blockIdx];
+  const done = blockComplete(S.blockIdx);
+  const isLast = S.blockIdx === BLOCKS.length - 1;
+
+  const qs = block.questions.map((q, qi) => {
+    if (!isActive(q)) return '';
+    const checked = S.ans[q.id];
+    return `
+      <div class="q-block">
+        <div class="q-header">
+          <span class="q-id">${q.id}</span>
+          <p class="q-text">${q.text}</p>
+        </div>
+        ${q.hint ? `<p class="q-hint">${q.hint}</p>` : ''}
+        <div class="options" style="margin-top:10px">
+          ${q.options.map(opt => `
+            <div class="opt ${checked === opt.score ? 'sel' : ''} ${opt.score === null ? 'skip-opt' : ''}"
+              onclick="pick('${q.id}', ${JSON.stringify(opt.score)})">
+              <div class="dot"></div>
+              <span class="opt-text">${opt.text}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+      ${qi < block.questions.filter(q2 => isActive(q2)).length - 1 ? '<div class="divider"></div>' : ''}`;
+  }).join('');
+
+  return `
+  <div class="card">
+    <div class="block-tag">${block.name} <span class="block-tag-weight">— ${block.weight}% итогового скора</span></div>
+    <p class="sub">${block.desc}</p>
+    <div class="divider"></div>
+    ${qs}
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="prevBlock()">← Назад</button>
+      <button class="btn btn-primary" onclick="nextBlock()" ${done?'':'disabled'}>
+        ${isLast ? 'Смотреть результаты →' : 'Следующий блок →'}
+      </button>
+    </div>
+  </div>`;
+}
+
+function renderResults() {
+  const r = calcResults();
+  const zNames = {green:'Зелёная зона', yellow:'Жёлтая зона', red:'Красная зона'};
+  const zRecs = {
+    green:'ИС подтверждается. Сотрудник соответствует роли и может продолжать работу.',
+    yellow:'Нужен разговор, корректировка ожиданий или дополнительный цикл улучшения. Финальное решение пока преждевременно.',
+    red:'ИС не подтверждается. По совокупности данных сотрудник не соответствует роли.',
+  };
+
+  return `
+  <div class="card">
+    <div class="section-label">Итоговый результат · ${escHtml(S.name)}</div>
+    <div style="display:flex;align-items:flex-end;gap:20px;margin-bottom:16px;flex-wrap:wrap">
+      <div>
+        <div class="score-num ${r.zone}">${r.total}</div>
+        <div style="font-size:13px;color:#94a3b8;margin-top:2px">из 100 баллов</div>
+      </div>
+      <div>
+        <div class="zone-badge zone-${r.zone}">${zNames[r.zone]}</div>
+        ${r.blockers.length ? '<div style="font-size:12px;color:#d97706;margin-top:6px">⚠ Повышена с красной на жёлтую (блокировка)</div>' : ''}
+      </div>
+    </div>
+    <div class="rec-box">${zRecs[r.zone]}</div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Баллы по блокам</div>
+    ${BLOCKS.map(b => {
+      const s = r.scores[b.id];
+      const c = scoreColor(s);
+      return `
+      <div class="block-row">
+        <span class="block-row-name">${b.name}${b.blocking ? ' 🔒' : ''}</span>
+        <div class="bar-wrap"><div class="bar-fill" style="width:${s??0}%;background:${c}"></div></div>
+        <span class="block-row-val" style="color:${c}">${s !== null ? s+'%' : '—'}</span>
+      </div>`;
+    }).join('')}
+    <div style="font-size:12px;color:#94a3b8;margin-top:8px">🔒 — блокирующий блок (порог 25%)</div>
+  </div>
+
+  ${r.blockers.length ? `
+  <div class="card">
+    <div class="section-label">Сработавшие блокировки</div>
+    ${r.blockers.map(b => `
+      <div class="blocker-box">
+        <div class="blocker-title">Блок «${b.name}» — ${r.scores[b.id]}% (ниже порога 25%)</div>
+        <div class="blocker-text">${b.blockingMsg}</div>
+      </div>`).join('')}
+  </div>` : ''}
+
+  ${r.weak.length ? `
+  <div class="card">
+    <div class="section-label">Слабые места (оценка 0)</div>
+    ${r.weak.map(({q,b}) => `
+      <div class="weak-item">
+        <span class="weak-id">${q.id}</span>
+        <span style="margin-left:6px">${q.text}</span>
+        <div style="font-size:12px;color:#94a3b8;margin-top:2px">Блок: ${b.name}</div>
+      </div>`).join('')}
+  </div>` : ''}
+
+  ${r.missing.length ? `
+  <div class="card">
+    <div class="section-label">Недостающие данные</div>
+    <p style="font-size:13px;color:#64748b;margin-bottom:10px">Вопросы, по которым ответ «Не могу оценить» — они исключены из расчёта:</p>
+    ${r.missing.map(({q}) => `
+      <div class="miss-item"><span class="weak-id">${q.id}</span> ${q.text}</div>`).join('')}
+  </div>` : ''}
+
+  <div class="card">
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="copyRes()">Скопировать</button>
+      <button class="btn btn-secondary" onclick="downloadRes()">Скачать .txt</button>
+      <button class="btn btn-primary" onclick="reset()">Новая оценка</button>
+    </div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
+// ACTIONS
+// ─────────────────────────────────────────────
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function gotoGate() { if(!S.name) return; S.step='gate'; save(); render(); }
+
+function setGate(id, val) { S.gate[id]=val; save(); render(); }
+
+function gotoScoring() {
+  if(!GATE.every(g => S.gate[g.id]===true)) return;
+  S.step='scoring'; S.blockIdx=0; save(); render();
+}
+
+function pick(qid, score) {
+  S.ans[qid] = score;
+  if (qid === 'C4' && ![2,4].includes(score)) delete S.ans['C5'];
+  save(); render();
+}
+
+function prevBlock() {
+  if (S.blockIdx === 0) { S.step='gate'; }
+  else { S.blockIdx--; }
+  save(); render(); scrollTo(0,0);
+}
+
+function nextBlock() {
+  if (!blockComplete(S.blockIdx)) return;
+  if (S.blockIdx === BLOCKS.length-1) { S.step='results'; }
+  else { S.blockIdx++; }
+  save(); render(); scrollTo(0,0);
+}
+
+function reset() {
+  S = { step:'welcome', blockIdx:0, name:'', gate:{}, ans:{}, ts:Date.now() };
+  save(); render();
+}
+
+function copyRes() {
+  const r = calcResults();
+  const zn = {green:'Зелёная зона',yellow:'Жёлтая зона',red:'Красная зона'};
+  let t = `СКОРИНГОВАЯ ОЦЕНКА ИС\nСотрудник: ${S.name}\n\nИтоговый скор: ${r.total}/100\nЗона: ${zn[r.zone]}\n\nБАЛЛЫ ПО БЛОКАМ:\n`;
+  BLOCKS.forEach(b => { t += `${b.name}: ${r.scores[b.id]!==null ? r.scores[b.id]+'%' : 'нет данных'}\n`; });
+  if (r.blockers.length) { t += `\nСРАБОТАВШИЕ БЛОКИРОВКИ:\n`; r.blockers.forEach(b => { t += `— ${b.name}\n  ${b.blockingMsg}\n`; }); }
+  if (r.weak.length) { t += `\nСЛАБЫЕ МЕСТА:\n`; r.weak.forEach(({q})=>{ t+=`— [${q.id}] ${q.text}\n`; }); }
+  navigator.clipboard.writeText(t).then(()=>alert('Скопировано!')).catch(()=>alert('Не удалось скопировать'));
+}
+
+function downloadRes() {
+  const r = calcResults();
+  const zn = {green:'Зелёная зона',yellow:'Жёлтая зона',red:'Красная зона'};
+  const zr = {
+    green:'ИС подтверждается. Сотрудник соответствует роли.',
+    yellow:'Нужен разговор, корректировка ожиданий или дополнительный цикл улучшения.',
+    red:'ИС не подтверждается. Сотрудник не соответствует роли.',
+  };
+  let t = `СКОРИНГОВАЯ ОЦЕНКА ИСПЫТАТЕЛЬНОГО СРОКА\n`;
+  t += `Сотрудник: ${S.name}\nДата: ${new Date().toLocaleDateString('ru-RU')}\n\n`;
+  t += `═══════════════════════════════════════\n`;
+  t += `ИТОГОВЫЙ СКОР: ${r.total}/100\nЗОНА: ${zn[r.zone]}\n${zr[r.zone]}\n`;
+  if (r.blockers.length) t += `⚠ Зона повышена с красной на жёлтую (блокирующее условие)\n`;
+  t += `═══════════════════════════════════════\n\nБАЛЛЫ ПО БЛОКАМ:\n`;
+  BLOCKS.forEach(b => { t += `  ${b.name} (вес ${b.weight}%): ${r.scores[b.id]!==null?r.scores[b.id]+'%':'нет данных'}\n`; });
+  if (r.blockers.length) {
+    t += `\nСРАБОТАВШИЕ БЛОКИРОВКИ:\n`;
+    r.blockers.forEach(b => { t += `\n  Блок «${b.name}» — ${r.scores[b.id]}%\n  ${b.blockingMsg}\n`; });
+  }
+  if (r.weak.length) {
+    t += `\nСЛАБЫЕ МЕСТА (оценка 0):\n`;
+    r.weak.forEach(({q,b}) => { t += `  [${q.id}] ${q.text} (${b.name})\n`; });
+  }
+  if (r.missing.length) {
+    t += `\nНЕДОСТАЮЩИЕ ДАННЫЕ:\n`;
+    r.missing.forEach(({q}) => { t += `  [${q.id}] ${q.text}\n`; });
+  }
+  const blob = new Blob([t], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `scoring-${S.name.replace(/\s+/g,'-')}-${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
+}
+
+// ─────────────────────────────────────────────
+// MAIN
+// ─────────────────────────────────────────────
+
+function render() {
+  renderTopBar();
+  const app = document.getElementById('app');
+  if (S.step==='welcome') app.innerHTML = renderWelcome();
+  else if (S.step==='gate') app.innerHTML = renderGate();
+  else if (S.step==='scoring') app.innerHTML = renderScoring();
+  else if (S.step==='results') app.innerHTML = renderResults();
+}
+
+render();
+</script>
+</body>
+</html>

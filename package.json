@@ -1,0 +1,12 @@
+{
+  "name": "scoring-is",
+  "version": "1.0.0",
+  "description": "Скоринговая оценка испытательного срока",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
